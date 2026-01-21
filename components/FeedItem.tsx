@@ -1,3 +1,4 @@
+import { supabase } from '@/lib/supabase';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -40,6 +41,39 @@ export default function FeedItem({
     const [showEditModal, setShowEditModal] = useState(false);
     const [showOptionsModal, setShowOptionsModal] = useState(false);
     const [showAllRemixes, setShowAllRemixes] = useState(false);
+
+    // Realtime Likes Subscription
+    useEffect(() => {
+        if (!isVisible || !post.id) return;
+
+        const channel = supabase
+            .channel(`likes:${post.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'likes',
+                    filter: `track_id=eq.${post.id}`,
+                },
+                (payload: any) => {
+                    // Ignore our own actions (handled locally)
+                    const userId = payload.new?.user_id || payload.old?.user_id;
+                    if (currentUser && userId === currentUser.id) return;
+
+                    if (payload.eventType === 'INSERT') {
+                        setLikeCount((prev: number) => prev + 1);
+                    } else if (payload.eventType === 'DELETE') {
+                        setLikeCount((prev: number) => Math.max(0, prev - 1));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [post.id, isVisible, currentUser]);
 
     // Load sound when visible
     useEffect(() => {
@@ -654,7 +688,8 @@ const styles = StyleSheet.create({
     },
     actionBar: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
+        justifyContent: 'space-between',
+        paddingHorizontal: 40,
         paddingTop: 16,
     },
     actionBtn: {

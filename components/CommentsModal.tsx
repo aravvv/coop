@@ -45,6 +45,70 @@ export default function CommentsModal({ isVisible, onClose, postId }: CommentsMo
     const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
     const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
 
+    // Realtime Comments Subscription
+    useEffect(() => {
+        if (!isVisible || !postId) return;
+
+        const channel = supabase
+            .channel(`comments:${postId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'comments',
+                    filter: `track_id=eq.${postId}`,
+                },
+                async (payload) => {
+                    const newComment = payload.new as Comment;
+
+                    // Ignore own comments (optimistic update)
+                    if (user && newComment.user_id === user.id) return;
+
+                    // Fetch profile for the new commenter
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('username, avatar_url')
+                        .eq('id', newComment.user_id)
+                        .single();
+
+                    const commentWithProfile: Comment = {
+                        ...newComment,
+                        profiles: profile || { username: 'Unknown' },
+                        likes_count: 0,
+                        user_has_liked: false,
+                        replies: []
+                    };
+
+                    setComments(prev => {
+                        // Check if already exists (dedupe)
+                        if (prev.some(c => c.id === newComment.id) ||
+                            prev.some(c => c.replies.some(r => r.id === newComment.id))) {
+                            return prev;
+                        }
+
+                        if (newComment.parent_id) {
+                            // It's a reply
+                            return prev.map(c => {
+                                if (c.id === newComment.parent_id) {
+                                    return { ...c, replies: [...c.replies, commentWithProfile] };
+                                }
+                                return c;
+                            });
+                        } else {
+                            // Top level
+                            return [...prev, commentWithProfile];
+                        }
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [isVisible, postId, user]);
+
     useEffect(() => {
         if (isVisible && postId) {
             fetchComments();

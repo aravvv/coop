@@ -1,3 +1,4 @@
+
 import FeedItem from '@/components/FeedItem';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +11,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [viewableItems, setViewableItems] = useState<ViewToken[]>([]);
+  // Use a safer initial height (window - approximate nav bar height) to avoid content being hidden
+  const [feedHeight, setFeedHeight] = useState(Dimensions.get('window').height - 110);
 
   useEffect(() => {
     fetchTracks();
@@ -49,10 +52,7 @@ export default function HomeScreen() {
         .select('id, username, role, avatar_url')
         .in('id', userIds);
 
-      // 4. Fetch Stats (Likes - Counts Only - Warning: Unscalable without aggregation, but cleaner than fetching all user_ids)
-      // Actually, fetching all likes for counts is still heavy. Ideally we'd have a trigger updating a count column.
-      // For now, to fix the "isLiked" bug, we strictly fetch the CURRENT USER'S likes separately.
-
+      // 4. Fetch Stats
       const { data: allLikes } = await supabase.from('likes').select('track_id').in('track_id', trackIds);
 
       let myLikedTrackIds = new Set();
@@ -70,13 +70,13 @@ export default function HomeScreen() {
 
       const { data: allComments } = await supabase.from('comments').select('track_id').in('track_id', trackIds);
 
-      // 5. Fetch Children (Remixes of these tracks - for counters/nesting)
+      // 5. Fetch Children
       const { data: allChildren } = await supabase
         .from('tracks')
         .select('id, parent_track_id, title, user_id, cover_art_url')
         .in('parent_track_id', trackIds);
 
-      // 6. Fetch Parent Details (For Attributions)
+      // 6. Fetch Parent Details
       let parentTracks: any[] = [];
       let parentProfiles: any[] = [];
 
@@ -98,14 +98,10 @@ export default function HomeScreen() {
       // 7. Merge Data
       const formattedPosts = tracks.map((track: any) => {
         const author = profiles?.find((p: any) => p.id === track.user_id);
-
-        // Count likes for this track from the big list (still subject to limit approx, but better than nothing)
         const trackLikesCount = allLikes?.filter((l: any) => l.track_id === track.id).length || 0;
-
         const trackComments = allComments?.filter((c: any) => c.track_id === track.id) || [];
         const trackChildren = allChildren?.filter((c: any) => c.parent_track_id === track.id) || [];
 
-        // Resolve Parent Info
         let parentInfo = null;
         if (track.parent_track_id) {
           const pTrack = parentTracks.find(p => p.id === track.parent_track_id);
@@ -136,11 +132,10 @@ export default function HomeScreen() {
           children: trackChildren,
           is_remix: !!track.parent_track_id,
           parent_track_id: track.parent_track_id,
-          parentTrack: parentInfo, // Attach full parent object
+          parentTrack: parentInfo,
         };
       });
 
-      // Show EVERYTHING (Remixes and Originals)
       setPosts(formattedPosts);
     } catch (error) {
       console.error('Error fetching tracks:', error);
@@ -171,8 +166,6 @@ export default function HomeScreen() {
         .eq('id', trackId);
 
       if (error) throw error;
-
-      // Remove from local state immediately
       setPosts(currentPosts => currentPosts.filter(p => p.id !== trackId));
       Alert.alert('Success', 'Track deleted successfully');
     } catch (error: any) {
@@ -183,14 +176,10 @@ export default function HomeScreen() {
   const handleToggleLike = async (trackId: string) => {
     try {
       if (!user) return;
-
-      // Find current post to get its state
       const post = posts.find(p => p.id === trackId);
       if (!post) return;
-
       const wasLiked = post.isLiked;
 
-      // 1. Optimistic Update
       setPosts(current => current.map(p => {
         if (p.id === trackId) {
           return {
@@ -202,7 +191,6 @@ export default function HomeScreen() {
         return p;
       }));
 
-      // 2. DB Interaction
       if (wasLiked) {
         const { error } = await supabase.from('likes').delete().eq('track_id', trackId).eq('user_id', user.id);
         if (error) throw error;
@@ -212,14 +200,13 @@ export default function HomeScreen() {
       }
     } catch (error) {
       console.error('Error toggling like:', error);
-      // Revert if needed (omitted for brevity)
     }
   };
 
   const renderItem = ({ item }: { item: any }) => {
     const isVisible = viewableItems.some(v => v.item.id === item.id && v.isViewable);
     return (
-      <View style={{ height: Dimensions.get('window').height - 80 }}>
+      <View style={{ height: feedHeight }}>
         <FeedItem
           post={item}
           isVisible={isVisible}
@@ -230,7 +217,7 @@ export default function HomeScreen() {
         />
       </View>
     );
-  }
+  };
 
   if (loading) {
     return (
@@ -241,14 +228,26 @@ export default function HomeScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={(e) => {
+        const { height } = e.nativeEvent.layout;
+        // Only set if different to avoid potential loops, though React handles basic equality
+        if (height > 0 && Math.abs(height - feedHeight) > 1) {
+          console.log('Update feed height', height);
+          setFeedHeight(height);
+        }
+      }}
+    >
       <FlatList
+        key={feedHeight} // Force re-render when height changes to ensure snapToInterval works
         data={posts}
         renderItem={renderItem}
+        contentContainerStyle={{ minHeight: feedHeight }}
         keyExtractor={(item) => item.id.toString()}
         pagingEnabled
         showsVerticalScrollIndicator={false}
-        snapToInterval={Dimensions.get('window').height - 80}
+        snapToInterval={feedHeight}
         snapToAlignment="start"
         decelerationRate="fast"
         onViewableItemsChanged={onViewableItemsChanged}

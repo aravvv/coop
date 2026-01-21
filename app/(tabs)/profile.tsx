@@ -5,6 +5,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { LogOut, Settings, Share2 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
     const { user, signOut } = useAuth();
@@ -12,6 +13,7 @@ export default function ProfileScreen() {
     const [userTracks, setUserTracks] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState(0);
+    const insets = useSafeAreaInsets();
 
     useFocusEffect(
         useCallback(() => {
@@ -260,29 +262,31 @@ export default function ProfileScreen() {
     }
 
     return (
-        <FlatList
-            data={filteredTracks}
-            renderItem={({ item }) => (
-                <View style={{ marginBottom: 20 }}>
-                    <FeedItem
-                        post={item}
-                        isVisible={true}
-                        variant="standard"
-                        currentUser={user}
-                        onDelete={() => handleDeleteTrack(item.id)}
-                        onLike={() => handleToggleLike(item.id)}
-                    />
-                </View>
-            )}
-            keyExtractor={(item: any) => item.id.toString()}
-            ListHeaderComponent={renderHeader}
-            contentContainerStyle={{ paddingBottom: 100 }}
-            ListEmptyComponent={
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>No tracks found</Text>
-                </View>
-            }
-        />
+        <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
+            <FlatList
+                data={filteredTracks}
+                renderItem={({ item }) => (
+                    <View style={{ marginBottom: 20 }}>
+                        <FeedItem
+                            post={item}
+                            isVisible={true}
+                            variant="standard"
+                            currentUser={user}
+                            onDelete={() => handleDeleteTrack(item.id)}
+                            onLike={() => handleToggleLike(item.id)}
+                        />
+                    </View>
+                )}
+                keyExtractor={(item: any) => item.id.toString()}
+                ListHeaderComponent={renderHeader}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                ListEmptyComponent={
+                    <View style={styles.emptyState}>
+                        <Text style={styles.emptyStateText}>No tracks found</Text>
+                    </View>
+                }
+            />
+        </View>
     );
 }
 
@@ -290,7 +294,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#0F172A',
-        paddingTop: 50,
+        // paddingTop removed in favor of SafeAreaInsets
     },
     profileContainer: {
         backgroundColor: '#0F172A', // var(--color-bg)
@@ -314,9 +318,10 @@ const styles = StyleSheet.create({
     },
     headerIcons: {
         flexDirection: 'row',
+        gap: 20,
     },
     iconBtn: {
-        marginLeft: 16, // gap: 16px
+        // marginLeft removed in favor of gap
     },
     profileCard: {
         marginHorizontal: 20,

@@ -1,0 +1,100 @@
+<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head>
+<meta charset="utf-8">
+<title>Coop Task List</title>
+<style>
+body { font-family: 'Calibri', 'Arial', sans-serif; line-height: 1.5; }
+h1 { color: #2E74B5; }
+ul { list-style-type: none; padding-left: 0; }
+li { margin-bottom: 5px; }
+.checked { color: #228B22; }
+.unchecked { color: #333; }
+.sub-list { padding-left: 30px; margin-top: 5px; }
+.bold { fontWeight: bold; font-size: 1.1em; }
+</style>
+</head>
+<body>
+<h1>Coop Project - Task List</h1>
+
+<ul>
+  <li><span class="checked">&#9745;</span> <span class="bold">Backend Migration & Setup</span>
+    <ul class="sub-list">
+      <li><span class="checked">&#9745;</span> Create <code>setup_coop_backend.sql</code> with tables (profiles, tracks, likes, comments, notifications)</li>
+      <li><span class="checked">&#9745;</span> Create storage buckets (avatars, covers, audio)</li>
+      <li><span class="checked">&#9745;</span> Fix RLS policies and foreign key constraints</li>
+      <li><span class="checked">&#9745;</span> Implement triggers for new user profiles and notifications</li>
+    </ul>
+  </li>
+
+  <li><span class="checked">&#9745;</span> <span class="bold">Upload Functionality</span>
+    <ul class="sub-list">
+      <li><span class="checked">&#9745;</span> Implement <code>handleUpload</code> in <code>upload.tsx</code></li>
+      <li><span class="checked">&#9745;</span> Fix Web <code>FormData</code> issues (Blob conversion)</li>
+      <li><span class="checked">&#9745;</span> Add UI feedback (progress steps, success/error messages)</li>
+    </ul>
+  </li>
+
+  <li><span class="checked">&#9745;</span> <span class="bold">Delete Functionality</span>
+    <ul class="sub-list">
+      <li><span class="checked">&#9745;</span> Create <code>handleDeleteTrack</code> in <code>index.tsx</code> and <code>profile.tsx</code></li>
+      <li><span class="checked">&#9745;</span> Update <code>OptionsModal</code> with cross-platform confirmation</li>
+      <li><span class="checked">&#9745;</span> Ensure immediate UI updates after deletion</li>
+    </ul>
+  </li>
+
+  <li><span class="checked">&#9745;</span> <span class="bold">Remix & Feed Features</span>
+    <ul class="sub-list">
+      <li><span class="checked">&#9745;</span> Show remixes in Home Feed</li>
+      <li><span class="checked">&#9745;</span> Add Remix Attribution Badge (<code>FeedItem.tsx</code>)</li>
+      <li><span class="checked">&#9745;</span> Remove redundant "History" button</li>
+    </ul>
+  </li>
+
+  <li><span class="checked">&#9745;</span> <span class="bold">Notifications System</span>
+    <ul class="sub-list">
+      <li><span class="checked">&#9745;</span> Add Bell icon to Home Header</li>
+      <li><span class="checked">&#9745;</span> Create <code>notifications.tsx</code> screen</li>
+      <li><span class="checked">&#9745;</span> Fetch and display notifications (<code>like</code>, <code>comment</code>, <code>remix</code>)</li>
+      <li><span class="checked">&#9745;</span> Handle new types (<code>reply</code>, <code>like_comment</code>)</li>
+    </ul>
+  </li>
+
+  <li><span class="checked">&#9745;</span> <span class="bold">Social Interactions (Instagram Style)</span>
+    <ul class="sub-list">
+      <li><span class="checked">&#9745;</span> <b>Database Schema Updates</b>
+        <ul class="sub-list">
+            <li><span class="checked">&#9745;</span> Add <code>parent_id</code> to <code>comments</code> table</li>
+            <li><span class="checked">&#9745;</span> Create <code>comment_likes</code> table</li>
+            <li><span class="checked">&#9745;</span> Update notification triggers for replies and comment likes</li>
+        </ul>
+      </li>
+      <li><span class="checked">&#9745;</span> <b>Frontend Implementation</b>
+        <ul class="sub-list">
+            <li><span class="checked">&#9745;</span> Update <code>CommentsModal</code> to support nested replies</li>
+            <li><span class="checked">&#9745;</span> Implement comment liking (UI + backend integration)</li>
+            <li><span class="checked">&#9745;</span> Add "Reply" button and input state for replying</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+
+  <li><span class="checked">&#9745;</span> <span class="bold">Refinement & Polish</span>
+    <ul class="sub-list">
+      <li><span class="checked">&#9745;</span> Bug Fix: Likes not persisting (Refactored Fetch Logic)</li>
+      <li><span class="unchecked">&#9744;</span> Verify real-time updates (subscriptions or optimistic UI)</li>
+      <li><span class="unchecked">&#9744;</span> Final UI/UX review</li>
+    </ul>
+  </li>
+
+  <li><span class="unchecked">&#9744;</span> <span class="bold">Future Goals</span>
+    <ul class="sub-list">
+      <li><span class="unchecked">&#9744;</span> <b>Real-time Subscriptions</b>: Live updates for likes/comments</li>
+      <li><span class="unchecked">&#9744;</span> <b>Profile Editing</b>: Update avatar, bio, background</li>
+      <li><span class="unchecked">&#9744;</span> <b>Search/Explore</b>: Discover new artists and tracks</li>
+    </ul>
+  </li>
+</ul>
+
+<p><i>Generated on 2026-01-22</i></p>
+</body>
+</html>
