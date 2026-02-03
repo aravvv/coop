@@ -167,6 +167,29 @@ export default function HomeScreen() {
   const [feedHeight, setFeedHeight] = useState(0); // Kept for future safety, though currently unused in favor of Dimensions
   const [currentPlayingId, setCurrentPlayingId] = useState<string | null>(null);
 
+  const handleDeleteTrack = async (trackId: string) => {
+    setPosts(prev => prev.filter(p => p.id !== trackId));
+    const { error } = await supabase.from('tracks').delete().eq('id', trackId);
+    if (error) {
+      console.error('Error deleting track:', error);
+      fetchTracks();
+    }
+  };
+
+  const handleToggleLike = async (trackId: string) => {
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) return;
+    const post = posts.find(p => p.id === trackId);
+    if (!post) return;
+    const isLiked = post.isLiked;
+    setPosts(prev => prev.map(p => p.id === trackId ? { ...p, isLiked: !isLiked, likes: isLiked ? p.likes - 1 : p.likes + 1 } : p));
+    if (isLiked) {
+      await supabase.from('likes').delete().eq('track_id', trackId).eq('user_id', currentUser.id);
+    } else {
+      await supabase.from('likes').insert({ track_id: trackId, user_id: currentUser.id });
+    }
+  };
+
   // ... (keep fetchTracks etc)
 
   const renderItem = ({ item }: { item: any }) => {
@@ -188,6 +211,16 @@ export default function HomeScreen() {
       </View>
     );
   }
+
+  // Autoplay the currently viewable track
+  useEffect(() => {
+    if (viewableItems.length > 0) {
+      const currentItem = viewableItems[0]?.item;
+      if (currentItem && currentPlayingId !== currentItem.id) {
+        setCurrentPlayingId(currentItem.id);
+      }
+    }
+  }, [viewableItems]);
 
   if (loading) {
     return (

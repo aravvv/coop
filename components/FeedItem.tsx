@@ -33,6 +33,7 @@ export default function FeedItem({
     // All state hooks at component level
     const [sound, setSound] = useState<Audio.Sound | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [liked, setLiked] = useState(post.isLiked || false);
     const [likeCount, setLikeCount] = useState(post.likes || 0);
     const [showComments, setShowComments] = useState(false);
@@ -81,15 +82,26 @@ export default function FeedItem({
         const loadSound = async () => {
             if (post.file_url && isVisible) {
                 try {
+                    setIsLoading(true);
                     if (sound) await sound.unloadAsync();
                     const { sound: newSound } = await Audio.Sound.createAsync(
                         { uri: post.file_url },
                         { shouldPlay: false }
                     );
+
+                    // Set up status updates to track playback state
+                    newSound.setOnPlaybackStatusUpdate((status) => {
+                        if (status.isLoaded) {
+                            setIsPlaying(status.isPlaying);
+                        }
+                    });
+
                     soundObj = newSound;
                     setSound(newSound);
+                    setIsLoading(false);
                 } catch (error) {
                     console.log('Error loading sound', error);
+                    setIsLoading(false);
                 }
             }
         };
@@ -111,13 +123,26 @@ export default function FeedItem({
     }, [isVisible, post.file_url]);
 
     const togglePlay = async () => {
-        if (!sound) return;
-        if (isPlaying) {
-            await sound.pauseAsync();
-        } else {
-            await sound.playAsync();
+        if (!sound || isLoading) return;
+
+        try {
+            // Check the current status of the sound
+            const status = await sound.getStatusAsync();
+
+            // Only proceed if sound is loaded
+            if (!status.isLoaded) {
+                console.log('Sound not loaded yet');
+                return;
+            }
+
+            if (status.isPlaying) {
+                await sound.pauseAsync();
+            } else {
+                await sound.playAsync();
+            }
+        } catch (error) {
+            console.error('Error toggling playback:', error);
         }
-        setIsPlaying(!isPlaying);
     };
 
     const handleLike = () => {
